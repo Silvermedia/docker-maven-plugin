@@ -701,8 +701,9 @@ public class DockerAccessWithHcClient implements DockerAccess {
     private TemporaryImageHandler tagTemporaryImage(ImageName name, String registry) throws DockerAccessException {
         String targetImage = name.getFullName(registry);
         if (name.hasRegistry() || registry == null) {
-            return interruptingError ->
-                log.info("Temporary image tag skipped. Target image '%s' already has registry set or no registry is available");
+            return () ->
+                log.info("Temporary image tag skipped. Target image '%s' already has registry set or no registry is available",
+                    targetImage);
         }
 
         String fullName = name.getFullName();
@@ -715,8 +716,7 @@ public class DockerAccessWithHcClient implements DockerAccess {
 
         tag(fullName, targetImage, false);
         return alreadyHasImage ?
-            interruptingError ->
-                log.info("Image '%s' won't be removed after tagging as it already existed", targetImage) :
+            () -> log.info("Tagged image '%s' won't be removed after tagging as it already existed", targetImage) :
             new RemovingTemporaryImageHandler(targetImage);
     }
 
@@ -779,33 +779,35 @@ public class DockerAccessWithHcClient implements DockerAccess {
 
     @FunctionalInterface
     private interface TemporaryImageHandler {
-        void handle(@Nullable DockerAccessException interruptingError) throws DockerAccessException;
-    }
+        void handle() throws DockerAccessException;
+
+		default void handle(@Nullable DockerAccessException interruptingError) throws DockerAccessException {
+			handle();
+
+			if (interruptingError == null) {
+				return;
+			}
+			throw interruptingError;
+		}
+	}
 
     private final class RemovingTemporaryImageHandler implements TemporaryImageHandler {
-        private final String targetImage;
+		private final String targetImage;
 
-        private RemovingTemporaryImageHandler(String targetImage) {
+		private RemovingTemporaryImageHandler(String targetImage) {
             this.targetImage = targetImage;
         }
 
-        @Override
-        public void handle(@Nullable DockerAccessException interruptingError) throws DockerAccessException {
-            if (removeImage(targetImage, true)) {
-                return;
-            }
-            if (interruptingError == null) {
-                throw new DockerAccessException(
-                    "Image %s could be pushed, but the temporary tag could not be removed",
-                    targetImage
-                );
-            } else {
-                throw new DockerAccessException(
-                    interruptingError.getCause(),
-                    interruptingError.getMessage() + " and also temporary tag [%s] could not be removed, too.",
-                    targetImage
-                );
-            }
-        }
+		@Override
+		public void handle() throws DockerAccessException {
+			boolean imageRemoved = removeImage(targetImage, true);
+			if (imageRemoved) {
+				return;
+			}
+			throw new DockerAccessException(
+				"Image %s could be pushed, but the temporary tag could not be removed",
+				targetImage
+			);
+		}
     }
 }
