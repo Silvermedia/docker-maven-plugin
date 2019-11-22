@@ -72,7 +72,7 @@ public class DockerAccessWithHcClientTest {
     }
 
     @Test
-    public void testPushImageWithReplacementOfExistingOfTheSameTag_notRemoved() throws Exception {
+    public void testPushImage_replacementOfExistingOfTheSameTag() throws Exception {
         String image = "test-image";
         String tag = "test-tag";
         String taggedImageName = String.format("%s:%s", image, tag);
@@ -89,7 +89,7 @@ public class DockerAccessWithHcClientTest {
     }
 
     @Test
-    public void testPushImageWithReplacementOfExistingOfTheSameTag_removed() throws Exception {
+    public void testPushImage_imageOfTheSameTagDoesNotExist() throws Exception {
         String image = "test-image";
         String tag = "test-tag";
         String taggedImageName = String.format("%s:%s", image, tag);

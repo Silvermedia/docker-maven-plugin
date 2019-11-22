@@ -781,15 +781,15 @@ public class DockerAccessWithHcClient implements DockerAccess {
     private interface TemporaryImageHandler {
         void handle() throws DockerAccessException;
 
-		default void handle(@Nullable DockerAccessException interruptingError) throws DockerAccessException {
-			handle();
+        default void handle(@Nullable DockerAccessException interruptingError) throws DockerAccessException {
+            handle();
 
-			if (interruptingError == null) {
-				return;
-			}
-			throw interruptingError;
-		}
-	}
+            if (interruptingError == null) {
+                return;
+            }
+            throw interruptingError;
+        }
+    }
 
     private final class RemovingTemporaryImageHandler implements TemporaryImageHandler {
 		private final String targetImage;
